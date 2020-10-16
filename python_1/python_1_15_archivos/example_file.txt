@@ -1,0 +1,2 @@
+este es un ejemplo de archivo de texto
+aqui puede haber un json, yaml, o lo que sea necesario.

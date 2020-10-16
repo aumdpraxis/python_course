@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            background: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    canvas {
+            border: 1px solid white;
+        }
+    </style>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
+</head>
+<body>
+<canvas width="800" height="600" id="game"></canvas>
+<script>
+// GLOBAL VARIABLES
+var _CANVAS = document.getElementById('game');
+var _SCENARIO_DIMS = [800,600];
+var _CONTEXT = _CANVAS.getContext('2d');
+var _GRID = 8;
+var _COUNT = 0;
+var _PHOTOGRAM_DIVISOR = 2;
+var snake_player="";
+var apples=[];
+var players=[];
+var socket = io();
+
+// SOCKET FUNCTIONS
+socket.on('connect', function() {
+    if(snake_player.localeCompare("")==0){
+        socket.emit('get_player',{'sender':snake_player});
+    }
+});
+socket.on("set_player",function(data){
+    snake_player=   data['player'];
+});
+socket.on("update",function(data){
+    apples=     data['apples'];
+    players=    data['players'];
+});
+
+socket.on("player_left",function(data){
+    delete players[data['player']];
+});
+
+window.addEventListener('beforeunload', function (e) {
+    socket.emit('delete_player',{'sender':snake_player});
+    socket.disconnect();
+});
+
+// game loop
+function loop() {
+  requestAnimationFrame(loop);
+    // slow game loop to 15 fps instead of 60 (60/15 = 4)
+    if (++_COUNT < _PHOTOGRAM_DIVISOR) {
+        return;
+    }
+    _COUNT = 0;
+    _CONTEXT.clearRect(0,0,_CANVAS.width,_CANVAS.height);
+    socket.emit('update_environment',{'sender':snake_player});
+
+    // draw apple
+    for(var index=0;index<apples.length;index++){
+        _CONTEXT.fillStyle = 'red';
+        _CONTEXT.fillRect(apples[index].x, apples[index].y,_GRID-1,_GRID-1);
+    }
+    
+    for(var index=0;index<players.length;index++){
+        // draw snake one cell at a time
+        _CONTEXT.fillStyle = players[index]['color'];
+        players[index].cells.forEach(function(cell, index) {         
+            // drawing 1 px smaller than the_GRID creates a_GRID effect in the snake body so you can see how long it is
+            _CONTEXT.fillRect(cell.x, cell.y,_GRID-1,_GRID-1);  
+
+            for(var index=0;index<apples.length;index++){
+                // snake ate apple
+                if (cell.x === apples[index].x && cell.y === apples[index].y) {
+                    socket.emit('ate_apple',{'sender':snake_player,'apple':apples[index].id});
+                    delete apples[index];
+                    index=0
+                }
+            }
+
+        });
+    }
+
+    }
+    // send message deppending on key pressed
+    document.addEventListener('keydown', function(e) {
+        if(e.which === 37){
+            socket.emit('key_press',{'sender':snake_player,'key':'l'});
+        }
+        if(e.which === 38){
+            socket.emit('key_press',{'sender':snake_player,'key':'u'});
+        }
+        if(e.which === 39){
+            socket.emit('key_press',{'sender':snake_player,'key':'r'});
+        }
+        if(e.which === 40){
+            socket.emit('key_press',{'sender':snake_player,'key':'d'});
+        }
+    });
+
+    // start the game
+    requestAnimationFrame(loop);
+</script>
+</body>
+</html>
