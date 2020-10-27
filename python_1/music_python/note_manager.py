@@ -35,6 +35,7 @@ TYPE={
     'F':1/8,
     'SF':1/16
 }
+
 TYPE['O.']=TYPE['O']*1.5
 TYPE['B.']=TYPE['B']*1.5
 TYPE['N.']=TYPE['N']*1.5
@@ -45,10 +46,10 @@ TYPE['SF.']=TYPE['SF']*1.5
 
 class Note_Manager:
     def __init__(self):
-        self.p = PyAudio()
+        self.py_audio = PyAudio()
 
     def init_stream(self,sample_rate=22050):
-        self.stream = self.p.open(format=self.p.get_format_from_width(1), # 8bit
+        self.stream = self.py_audio.open(format=self.py_audio.get_format_from_width(1), # 8bit
                     channels=1, # mono
                     rate=sample_rate,
                     output=True)
@@ -56,7 +57,7 @@ class Note_Manager:
     def end_stream(self):
         self.stream.stop_stream()
         self.stream.close()
-        self.p.terminate()
+        self.py_audio.terminate()
 
     def run(self,_note,_octave,_time):
         self.sine_tone(
@@ -70,9 +71,8 @@ class Note_Manager:
     def sine_tone(self,frequency, duration, volume=1, sample_rate=22050):
         n_samples = int(sample_rate * duration)
         dots = np.arange(n_samples)
-        signal = (volume *np.sin(2*np.pi*frequency*dots/sample_rate)*0x7f+0x80).astype(int)
+        signal = (volume *np.sin(2*np.py_audioi*frequency*dots/sample_rate)*0x7f+0x80).astype(int)
         for buf in izip(signal): # write several samples at a time
             self.stream.write(bytes(bytearray(buf)))
-            
         # fill remainder of frameset with silence
         self.stream.write(b'\x80' * int(sample_rate/256))
