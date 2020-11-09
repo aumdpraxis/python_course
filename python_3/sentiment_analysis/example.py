@@ -82,5 +82,5 @@ def analyze(input):
 #         self.emote['text'] = self.neutral
 
 if __name__ == "__main__":
-    phrase = "nice to meet you"
+    phrase = "i heate you man"
     print(f"{phrase}:\nthe phrase is ->{analyze(phrase)}")
